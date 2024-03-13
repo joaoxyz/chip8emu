@@ -48,7 +48,7 @@ class CPU:
                 # 7XNN: Add
                 self.variable_registers[int(second_nibble, 16)] += int(second_byte, 16)
                 # Wrap-around on overflow
-                self.variable_registers &= 255
+                self.variable_registers[int(second_nibble, 16)] &= 255
             case 'a':
                 # ANNN: Set index register
                 self.index_register = int(nibbles234, 16)
