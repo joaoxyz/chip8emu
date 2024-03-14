@@ -54,7 +54,9 @@ class CPU:
                 self.index_register = int(nibbles234, 16)
             case 'd':
                 # DXYN: Display draw
-                pass
+                x_cord = self.variable_registers[self.hex_to_int(second_nibble)] & 63
+                y_cord = self.variable_registers[self.hex_to_int(third_nibble)] & 63
+                self.variable_registers[-1] = 0
 
     def dump_display(self):
         pass

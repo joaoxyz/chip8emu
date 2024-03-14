@@ -9,7 +9,7 @@ chip8cpu = cpu.CPU()
 read_index = chip8cpu.program_counter
 with open(sys.argv[1], 'rb') as rom:
     while (byte := rom.read(1)):
-        chip8cpu.memory[read_index]
+        chip8cpu.memory[read_index] = byte
         read_index += 1
 
-print(chip8cpu.memory[chip8cpu.program_counter+10])
+print(chip8cpu.fetch())
