@@ -15,12 +15,12 @@ class CPU:
         # TODO: Add font data to memory
         # TODO: Research how timers work??
 
-    def fetch(self):
+    def fetch(self) -> bytes:
         instruction = self.memory[self.program_counter] + self.memory[self.program_counter+1]
         self.program_counter += 2
         return instruction
 
-    def decode_and_execute(self, instruction):
+    def decode_and_execute(self, instruction: bytes) -> None:
         first_nibble = instruction.hex()[0]
         second_nibble = instruction.hex()[1]
         third_nibble = instruction.hex()[2]
@@ -54,12 +54,26 @@ class CPU:
                 self.index_register = int(nibbles234, 16)
             case 'd':
                 # DXYN: Display draw
-                x_cord = self.variable_registers[self.hex_to_int(second_nibble)] & 63
-                y_cord = self.variable_registers[self.hex_to_int(third_nibble)] & 63
+                x_cord = self.variable_registers[int(second_nibble, 16)] & 63
+                y_cord = self.variable_registers[int(third_nibble, 16)] & 63
+                sprite_memory_pos = self.index_register
+                sprite_height = int(fourth_nibble, 16)
+                sprite_width = 8
                 self.variable_registers[-1] = 0
 
-    def dump_display(self):
-        pass
+                for y in range(y_cord, min(len(self.display), sprite_height)):
+                    sprite = format(bin(self.memory[sprite_memory_pos]), 'b')
+                    sprite_idx = 0
+                    for x in range(x_cord, min(len(self.display[0]), sprite_width)):
+                        # Update register VF on pixel turnoff
+                        if (self.display[y][x] == 1 and int(sprite[sprite_idx])):
+                            self.variable_registers[-1] = 1
+                        self.display[y][x] ^= int(sprite[sprite_idx])
+                        sprite_idx += 1
+                    sprite_memory_pos += 1
 
-    def hex_to_int(self, val):
-        return int(val, 16)
+    def dump_display(self):
+        for i in self.display:
+            for j in i:
+                print(j, end='')
+            print()
