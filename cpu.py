@@ -5,7 +5,7 @@ class CPU:
         # 4kb memory
         self.memory = [0] * 4096
         # 64x32 pixels display
-        self.display = np.zeros((64, 32), dtype=int)
+        self.display = np.zeros((64, 32), dtype=np.uint8)
         self.program_counter = 0x200
         self.index_register = 0
         self.stack = []
@@ -36,7 +36,7 @@ class CPU:
                 match fourth_nibble:
                     case '0':
                         # 00E0: Clear screen
-                        self.display = np.zeros((64, 32), dtype=int)
+                        self.display[self.display != 0] = 0
                     case 'e':
                         # 00EE: Return subroutine
                         self.program_counter = self.stack.pop()
