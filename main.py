@@ -6,25 +6,32 @@ from pygame.surfarray import blit_array
 
 import cpu
 
+def draw(screen: pygame.Surface, arr: np.ndarray, palette: tuple[tuple[int, int, int], tuple[int, int, int]]) -> None:
+    colored_arr = np.zeros((*arr.shape, 3), dtype=np.uint8)
+    colored_arr[arr == 1] = palette[0]
+    colored_arr[arr != 1] = palette[1]
+
+    blit_array(screen, colored_arr)
+
 def run(cpu_instance: cpu.CPU) -> int:
     pygame.init()
     screen = pygame.display.set_mode((64, 32), pygame.SCALED)
     clock = pygame.time.Clock()
     running = True
-
+    color_palette = ((15,56,15), (139,172,15))
+    
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        blit_array(screen, cpu_instance.display * 255)
+        draw(screen, cpu_instance.display, color_palette)
 
-        # Game logic
+        # Emulator logic
         inst = cpu_instance.fetch()
         cpu_instance.decode_and_execute(inst)
 
         pygame.display.flip()
-
         clock.tick(60)
 
     return 0
