@@ -1,9 +1,11 @@
+import numpy as np
+
 class CPU:
-    def __init__(self):
+    def __init__(self) -> None:
         # 4kb memory
         self.memory = [0] * 4096
         # 64x32 pixels display
-        self.display = [[0] * 64 for _ in range(32)]
+        self.display = np.zeros((64, 32), dtype=int)
         self.program_counter = 0x200
         self.index_register = 0
         self.stack = []
@@ -34,7 +36,7 @@ class CPU:
                 match fourth_nibble:
                     case '0':
                         # 00E0: Clear screen
-                        self.display = [[0] * 64 for _ in range(32)]
+                        self.display = np.zeros((64, 32), dtype=int)
                     case 'e':
                         # 00EE: Return subroutine
                         self.program_counter = self.stack.pop()
@@ -61,18 +63,18 @@ class CPU:
                 sprite_width = 8
 
                 sprite_memory_pos = self.index_register
-                for y in range(y_cord, min(len(self.display), y_cord+sprite_height)):
+                for y in range(y_cord, min(len(self.display[0]), y_cord+sprite_height)):
                     sprite = f'{int(self.memory[sprite_memory_pos].hex(), base=16):08b}'
                     sprite_idx = 0
-                    for x in range(x_cord, min(len(self.display[0]), x_cord+sprite_width)):
-                        self.display[y][x] ^= int(sprite[sprite_idx], base=2)
+                    for x in range(x_cord, min(len(self.display), x_cord+sprite_width)):
+                        self.display[x][y] ^= int(sprite[sprite_idx], base=2)
                         # Update register VF on pixel turnoff
-                        if (self.display[y][x] == 1 and int(sprite[sprite_idx], base=2)):
+                        if (self.display[x][y] == 1 and int(sprite[sprite_idx], base=2)):
                             self.variable_registers[-1] = 1
                         sprite_idx += 1
                     sprite_memory_pos += 1
 
-    def dump_display(self):
+    def dump_display(self) -> None:
         for col in range(len(self.display)):
             for row in range(len(self.display[0])):
                 print(self.display[col][row], end='')

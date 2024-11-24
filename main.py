@@ -1,6 +1,33 @@
-import cpu
-import time
 import sys
+
+import numpy as np
+import pygame
+from pygame.surfarray import blit_array
+
+import cpu
+
+def run(cpu_instance: cpu.CPU) -> int:
+    pygame.init()
+    screen = pygame.display.set_mode((64, 32), pygame.SCALED)
+    clock = pygame.time.Clock()
+    running = True
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        blit_array(screen, cpu_instance.display * 255)
+
+        # Game logic
+        inst = cpu_instance.fetch()
+        cpu_instance.decode_and_execute(inst)
+
+        pygame.display.flip()
+
+        clock.tick(60)
+
+    return 0
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -15,11 +42,4 @@ if __name__ == "__main__":
             chip8cpu.memory[read_index] = byte
             read_index += 1
 
-    try:
-        while True:
-            inst = chip8cpu.fetch()
-            chip8cpu.decode_and_execute(inst)
-    except KeyboardInterrupt:
-        chip8cpu.dump_display()
-
-    #sys.exit(run(chip8cpu))
+    sys.exit(run(chip8cpu))
