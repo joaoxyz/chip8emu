@@ -1,12 +1,15 @@
 import sys
 
 import numpy as np
+import numpy.typing as npt
 import pygame
 from pygame.surfarray import blit_array
 
 import cpu
 
-def draw(screen: pygame.Surface, arr: np.ndarray, palette: tuple[tuple[int, int, int], tuple[int, int, int]]) -> None:
+type RGBColor = tuple[int, int, int]
+
+def draw(screen: pygame.Surface, arr: npt.NDArray[np.uint8], palette: tuple[RGBColor, RGBColor]) -> None:
     colored_arr = np.zeros((*arr.shape, 3), dtype=np.uint8)
     colored_arr[arr == 1] = palette[0]
     colored_arr[arr != 1] = palette[1]
@@ -32,7 +35,7 @@ def run(cpu_instance: cpu.CPU) -> int:
         cpu_instance.decode_and_execute(inst)
 
         pygame.display.flip()
-        clock.tick(60)
+        #clock.tick(60)
 
     return 0
 
@@ -46,7 +49,7 @@ if __name__ == "__main__":
     read_index = chip8cpu.program_counter
     with open(sys.argv[1], 'rb') as rom:
         while (byte := rom.read(1)):
-            chip8cpu.memory[read_index] = byte
+            chip8cpu.memory[read_index] = int.from_bytes(byte)
             read_index += 1
 
     sys.exit(run(chip8cpu))

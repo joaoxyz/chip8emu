@@ -1,3 +1,4 @@
 *.ch8
 .venv/
 testroms/
+__pycache__/
