@@ -57,16 +57,16 @@ class CPU:
         nibble3 = instruction.hex()[2]
         nibble4 = instruction.hex()[3]
 
-        second_byte = instruction.hex()[2:]
+        byte2 = instruction.hex()[2:]
         nibbles234 = instruction.hex()[1:]
 
         match nibble1:
             case '0':
-                match nibble4:
-                    case '0':
+                match byte2:
+                    case 'e0':
                         # 00E0: Clear screen
                         self.display[self.display != 0] = 0
-                    case 'e':
+                    case 'ee':
                         # 00EE: Return subroutine
                         self.program_counter = self.stack.pop()
                     case _:
@@ -80,11 +80,11 @@ class CPU:
                 self.program_counter = int(nibbles234, base=16)
             case '3':
                 # 3XNN: Skip if VX == NN
-                if self.variable_registers[int(nibble2, base=16)] == int(second_byte, base=16):
+                if self.variable_registers[int(nibble2, base=16)] == int(byte2, base=16):
                     self.program_counter += 2
             case '4':
                 # 4XNN: Skip if VX != NN
-                if self.variable_registers[int(nibble2, base=16)] != int(second_byte, base=16):
+                if self.variable_registers[int(nibble2, base=16)] != int(byte2, base=16):
                     self.program_counter += 2
             case '5':
                 # 5XY0: Skip if VX == VY
@@ -92,10 +92,10 @@ class CPU:
                     self.program_counter += 2
             case '6':
                 # 6XNN: Set
-                self.variable_registers[int(nibble2, base=16)] = int(second_byte, base=16)
+                self.variable_registers[int(nibble2, base=16)] = int(byte2, base=16)
             case '7':
                 # 7XNN: Add
-                self.variable_registers[int(nibble2, base=16)] += int(second_byte, base=16)
+                self.variable_registers[int(nibble2, base=16)] += int(byte2, base=16)
                 # Wrap-around on overflow
                 self.variable_registers[int(nibble2, base=16)] &= 255
             case '8':
@@ -109,7 +109,6 @@ class CPU:
                     case '3':
                         self.variable_registers[int(nibble2, base=16)] ^= self.variable_registers[int(nibble3, base=16)]
                     case '4':
-                        print(f'v{nibble2} before: {self.variable_registers[int(nibble2, base=16)]}')
                         self.variable_registers[int(nibble2, base=16)] += self.variable_registers[int(nibble3, base=16)]
                         # Wrap-around on overflow and set carry flag
                         if self.variable_registers[int(nibble2, base=16)] > 255:
@@ -117,9 +116,6 @@ class CPU:
                             self.variable_registers[-1] = 1
                         else:
                             self.variable_registers[-1] = 0
-                        print(f'v{nibble2} after: {self.variable_registers[int(nibble2, base=16)]}')
-                        print(f'v{nibble3}: {self.variable_registers[int(nibble3, base=16)]}')
-                        print(f'vf: {self.variable_registers[-1]}')
                     case '5':
                         # x - y
                         self.variable_registers[int(nibble2, base=16)] -= self.variable_registers[int(nibble3, base=16)]
@@ -161,7 +157,7 @@ class CPU:
                 # TODO: Ambiguous instruction, could be made configurable
                 self.program_counter = int(nibbles234, base=16) + self.variable_registers[0]
             case 'c':
-                self.variable_registers[int(nibble2, base=16)] = randint(0, sys.maxsize) & int(second_byte, base=16)
+                self.variable_registers[int(nibble2, base=16)] = randint(0, sys.maxsize) & int(byte2, base=16)
             case 'd':
                 # DXYN: Draw to display
                 x_cord = self.variable_registers[int(nibble2, base=16)] & 63
@@ -174,10 +170,6 @@ class CPU:
                 for y in range(y_cord, min(len(self.display[0]), y_cord+sprite_height)):
                     #sprite = f'{int(self.memory[sprite_memory_pos].hex(), base=16):08b}'
                     sprite = f'{self.memory[sprite_memory_pos]:08b}'
-                    print(sprite)
-                    print(sprite_memory_pos)
-                    #print(type(self.memory[sprite_memory_pos]))
-                    #sprite = None
                     sprite_idx = 0
                     for x in range(x_cord, min(len(self.display), x_cord+sprite_width)):
                         self.display[x][y] ^= int(sprite[sprite_idx], base=2)
@@ -187,7 +179,7 @@ class CPU:
                         sprite_idx += 1
                     sprite_memory_pos += 1
             case 'f':
-                match second_byte:
+                match byte2:
                     case '1e':
                         self.index_register += self.variable_registers[int(nibble2, base=16)]
                         # Handle overflow
@@ -210,12 +202,8 @@ class CPU:
                             i -= 1
                     case '55':
                         # Ambiguous instruction!
-                        #print(instruction.hex())
-                        #print(self.variable_registers[1])
                         upper_bound = self.variable_registers[int(nibble2, base=16)]
-                        #print(upper_bound)
                         for i in range(upper_bound+1):
-                            #print(i)
                             self.memory[self.index_register+i] = self.variable_registers[i]
                     case '65':
                         # Ambiguous instruction!
