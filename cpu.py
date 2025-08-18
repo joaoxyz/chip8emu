@@ -117,23 +117,25 @@ class CPU:
                         else:
                             self.variable_registers[-1] = 0
                     case '5':
+                        vx = self.variable_registers[int(nibble2, base=16)]
+                        vy = self.variable_registers[int(nibble3, base=16)]
+                        # Set carry flag
+                        if vx < vy:
+                            self.variable_registers[-1] = 0
+                        else:
+                            self.variable_registers[-1] = 1
                         # x - y
-                        self.variable_registers[int(nibble2, base=16)] -= self.variable_registers[int(nibble3, base=16)]
-                        # Wrap-around on overflow and set carry flag
-                        if self.variable_registers[int(nibble2, base=16)] < self.variable_registers[int(nibble3, base=16)]:
-                            self.variable_registers[int(nibble2, base=16)] &= 255
-                            self.variable_registers[-1] = 0
-                        else:
-                            self.variable_registers[-1] = 1
+                        self.variable_registers[int(nibble2, base=16)] = (vx - vy) & 255
                     case '7':
-                        # y - x
-                        self.variable_registers[int(nibble2, base=16)] = self.variable_registers[int(nibble3, base=16)] - self.variable_registers[int(nibble2, base=16)]
-                        # Wrap-around on overflow and set carry flag
-                        if self.variable_registers[int(nibble2, base=16)] > self.variable_registers[int(nibble3, base=16)]:
-                            self.variable_registers[int(nibble2, base=16)] &= 255
+                        vx = self.variable_registers[int(nibble2, base=16)]
+                        vy = self.variable_registers[int(nibble3, base=16)]
+                        # Set carry flag
+                        if vy < vx:
                             self.variable_registers[-1] = 0
                         else:
                             self.variable_registers[-1] = 1
+                        # x - y
+                        self.variable_registers[int(nibble2, base=16)] = (vy - vx) & 255
                     case '6':
                         # TODO: Ambiguous instruction, behavior should be configurable
                         # Set VF to bit shifted out
@@ -142,8 +144,10 @@ class CPU:
                     case 'e':
                         # TODO: Ambiguous instruction, behavior should be configurable
                         # Set VF to bit shifted out
-                        self.variable_registers[-1] = self.variable_registers[int(nibble2, base=16)] & 128
+                        self.variable_registers[-1] = (self.variable_registers[int(nibble2, base=16)] & 128) >> 7
                         self.variable_registers[int(nibble2, base=16)] <<= 1
+                        # Handle overflow
+                        self.variable_registers[int(nibble2, base=16)] &= 0xFF
                     case _:
                         print(f'Unknown instruction: {instruction.hex()}')
             case '9':
@@ -202,12 +206,12 @@ class CPU:
                             i -= 1
                     case '55':
                         # Ambiguous instruction!
-                        upper_bound = self.variable_registers[int(nibble2, base=16)]
+                        upper_bound = int(nibble2, base=16)
                         for i in range(upper_bound+1):
                             self.memory[self.index_register+i] = self.variable_registers[i]
                     case '65':
                         # Ambiguous instruction!
-                        upper_bound = self.variable_registers[int(nibble2, base=16)]
+                        upper_bound = int(nibble2, base=16)
                         for i in range(upper_bound+1):
                             self.variable_registers[i] = self.memory[self.index_register+i]
                     case _:
