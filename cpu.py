@@ -1,10 +1,10 @@
-import sys
 from random import randint
 
 import numpy as np
 
 class CPU:
-    def __init__(self) -> None:
+    def __init__(self, debug = False) -> None:
+        self.debug = debug
         # 4kb memory
         self.memory: list[int] = [0] * 4096
         # 64x32 pixels display
@@ -12,10 +12,9 @@ class CPU:
         self.program_counter: int = 0x200
         self.index_register: int = 0
         self.stack: list[int] = []
-        # Timers initialized as zero
         # TODO: Research how timers work??
-        self.delay_timer = 0
-        self.sound_timer = 0
+        self.delay_timer = 0xFF
+        self.sound_timer = 0xFF
         self.variable_registers: list[int] = [0] * 16
 
         # Add font data to memory
@@ -49,6 +48,10 @@ class CPU:
         byte1 = self.memory[self.program_counter]
         byte2 = self.memory[self.program_counter+1]
         instruction = (byte1 << 8) | byte2
+
+        if (self.debug):
+            print(hex(instruction))
+
         self.program_counter += 2
         return instruction
 
@@ -200,6 +203,15 @@ class CPU:
                     sprite_memory_pos += 1
             case 0xF:
                 match nn:
+                    case 0x07:
+                        # FX07: Set VX to delay timer
+                        self.variable_registers[x] = self.delay_timer
+                    case 0x15:
+                        # FX15: Set delay timer to VX
+                        self.delay_timer = self.variable_registers[x]
+                    case 0x18:
+                        # FX18: Set sound timer to VX
+                        self.sound_timer = self.variable_registers[x]
                     case 0x1E:
                         # FX1E: Add to index
                         self.index_register += self.variable_registers[x]
