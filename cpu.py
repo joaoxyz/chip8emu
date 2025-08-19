@@ -6,7 +6,7 @@ class CPU:
     def __init__(self, debug = False) -> None:
         self.debug = debug
         # 4kb memory
-        self.memory: list[int] = [0] * 4096
+        self.memory: bytearray = bytearray(4096)
         # 64x32 pixels display
         self.display = np.zeros((64, 32), dtype=np.uint8)
         self.program_counter: int = 0x200
@@ -126,18 +126,18 @@ class CPU:
                         # Wrap-around on overflow and set carry flag
                         if self.variable_registers[x] > 255:
                             self.variable_registers[x] &= 255
-                            self.variable_registers[-1] = 1
+                            self.variable_registers[0xF] = 1
                         else:
-                            self.variable_registers[-1] = 0
+                            self.variable_registers[0xF] = 0
                     case 0x5:
                         # 8XY5: Subtract VX - VY
                         vx = self.variable_registers[x]
                         vy = self.variable_registers[y]
                         # Set carry flag
                         if vx < vy:
-                            self.variable_registers[-1] = 0
+                            self.variable_registers[0xF] = 0
                         else:
-                            self.variable_registers[-1] = 1
+                            self.variable_registers[0xF] = 1
                         # x - y
                         self.variable_registers[x] = (vx - vy) & 255
                     case 0x7:
@@ -146,22 +146,22 @@ class CPU:
                         vy = self.variable_registers[y]
                         # Set carry flag
                         if vy < vx:
-                            self.variable_registers[-1] = 0
+                            self.variable_registers[0xF] = 0
                         else:
-                            self.variable_registers[-1] = 1
+                            self.variable_registers[0xF] = 1
                         # x - y
                         self.variable_registers[x] = (vy - vx) & 255
                     case 0x6:
                         # 8XY6: Shift right
                         # TODO: Ambiguous instruction, behavior should be configurable
                         # Set VF to bit shifted out
-                        self.variable_registers[-1] = self.variable_registers[x] & 1
+                        self.variable_registers[0xF] = self.variable_registers[x] & 1
                         self.variable_registers[x] >>= 1
                     case 0xE:
                         # 8XY6: Shift left
                         # TODO: Ambiguous instruction, behavior should be configurable
                         # Set VF to bit shifted out
-                        self.variable_registers[-1] = (self.variable_registers[x] & 128) >> 7
+                        self.variable_registers[0xF] = (self.variable_registers[x] & 128) >> 7
                         self.variable_registers[x] <<= 1
                         # Handle overflow
                         self.variable_registers[x] &= 0xFF
@@ -183,24 +183,28 @@ class CPU:
                 self.variable_registers[x] = randint(0, 255) & nn
             case 0xD:
                 # DXYN: Draw to display
-                x_cord = self.variable_registers[x] & 63
-                y_cord = self.variable_registers[y] & 31
-                self.variable_registers[-1] = 0
+                x_start_pos = self.variable_registers[x] & 63
+                y_start_pos = self.variable_registers[y] & 31
+                self.variable_registers[0xF] = 0
                 sprite_height = n
                 sprite_width = 8
 
-                sprite_memory_pos = self.index_register
-                for y in range(y_cord, min(len(self.display[0]), y_cord+sprite_height)):
-                    #sprite = f'{int(self.memory[sprite_memory_pos].hex(), base=16):08b}'
-                    sprite = f'{self.memory[sprite_memory_pos]:08b}'
-                    sprite_idx = 0
-                    for x in range(x_cord, min(len(self.display), x_cord+sprite_width)):
-                        self.display[x][y] ^= int(sprite[sprite_idx], base=2)
-                        # Update register VF on pixel turnoff
-                        if (self.display[x][y] == 1 and int(sprite[sprite_idx], base=2)):
-                            self.variable_registers[-1] = 1
-                        sprite_idx += 1
-                    sprite_memory_pos += 1
+                for y_pos in range(sprite_height):
+                    sprite = self.memory[self.index_register+y_pos]
+                    y_screen = (y_start_pos + y_pos)# & 31
+                    if y_screen >= len(self.display[0]):
+                        break
+                    for x_pos in range(sprite_width):
+                        sprite_pixel = (sprite >> (7 - x_pos)) & 1
+                        if sprite_pixel == 1:
+                            x_screen = (x_start_pos + x_pos) & 63
+                            if x_screen >= len(self.display):
+                                break
+                            # Update register VF on pixel turnoff
+                            if self.display[x_screen][y_screen] == 1:
+                                self.variable_registers[0xF] = 1
+                            self.display[x_screen][y_screen] ^= 1
+
             case 0xF:
                 match nn:
                     case 0x07:
@@ -217,7 +221,7 @@ class CPU:
                         self.index_register += self.variable_registers[x]
                         # Handle overflow
                         if self.index_register > 0x0FFF:
-                            self.variable_registers[-1] = 1
+                            self.variable_registers[0xF] = 1
                         if self.index_register > 0xFFFF:
                             self.index_register &= 0xFFFF
                     #case 0x0A:

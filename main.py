@@ -55,10 +55,8 @@ if __name__ == "__main__":
 
     chip8cpu = cpu.CPU()
 
-    read_index = chip8cpu.program_counter
     with open(sys.argv[1], 'rb') as rom:
-        while (byte := rom.read(1)):
-            chip8cpu.memory[read_index] = int.from_bytes(byte)
-            read_index += 1
+        rom_data = bytearray(rom.read())
+        chip8cpu.memory[chip8cpu.program_counter:len(rom_data)] = rom_data
 
     sys.exit(run(chip8cpu))
