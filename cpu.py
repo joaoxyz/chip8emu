@@ -133,38 +133,38 @@ class CPU:
                         # 8XY5: Subtract VX - VY
                         vx = self.variable_registers[x]
                         vy = self.variable_registers[y]
+                        self.variable_registers[x] = (vx - vy) & 255
                         # Set carry flag
                         if vx < vy:
                             self.variable_registers[0xF] = 0
                         else:
                             self.variable_registers[0xF] = 1
-                        # x - y
-                        self.variable_registers[x] = (vx - vy) & 255
                     case 0x7:
                         # 8XY7: Subtract VY - VX
                         vx = self.variable_registers[x]
                         vy = self.variable_registers[y]
+                        self.variable_registers[x] = (vy - vx) & 255
                         # Set carry flag
                         if vy < vx:
                             self.variable_registers[0xF] = 0
                         else:
                             self.variable_registers[0xF] = 1
-                        # x - y
-                        self.variable_registers[x] = (vy - vx) & 255
                     case 0x6:
                         # 8XY6: Shift right
                         # TODO: Ambiguous instruction, behavior should be configurable
-                        # Set VF to bit shifted out
-                        self.variable_registers[0xF] = self.variable_registers[x] & 1
+                        vx = self.variable_registers[x]
                         self.variable_registers[x] >>= 1
+                        # Set VF to bit shifted out
+                        self.variable_registers[0xF] = vx & 1
                     case 0xE:
                         # 8XY6: Shift left
                         # TODO: Ambiguous instruction, behavior should be configurable
-                        # Set VF to bit shifted out
-                        self.variable_registers[0xF] = (self.variable_registers[x] & 128) >> 7
+                        vx = self.variable_registers[x]
                         self.variable_registers[x] <<= 1
                         # Handle overflow
                         self.variable_registers[x] &= 0xFF
+                        # Set VF to bit shifted out
+                        self.variable_registers[0xF] = (vx & 128) >> 7
                     case _:
                         print(f'Unknown instruction: {hex(instruction)}')
             case 0x9:
@@ -204,7 +204,6 @@ class CPU:
                             if self.display[x_screen][y_screen] == 1:
                                 self.variable_registers[0xF] = 1
                             self.display[x_screen][y_screen] ^= 1
-
             case 0xF:
                 match nn:
                     case 0x07:
