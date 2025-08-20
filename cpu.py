@@ -3,7 +3,7 @@ from random import randint
 import numpy as np
 
 class CPU:
-    def __init__(self, debug = False) -> None:
+    def __init__(self, debug: bool = False) -> None:
         self.debug = debug
         # 4kb memory
         self.memory: bytearray = bytearray(4096)
@@ -39,10 +39,6 @@ class CPU:
 
         for i in range(0x50, 0x50+len(font_arr)):
             self.memory[i] = font_arr[i-0x50]
-
-        characters = '0123456789abcdef'
-        positions = list(range(0x50, 0x50+len(font_arr), 5))
-        self.font_positions = dict(zip(characters, positions))
 
     def fetch(self) -> int:
         byte1 = self.memory[self.program_counter]
@@ -226,8 +222,8 @@ class CPU:
                     #case 0x0A:
                     case 0x29:
                         # FX29: Set index to font data for character in VX
-                        char = self.variable_registers[x].to_bytes().hex()[1]
-                        self.index_register = self.font_positions[char]
+                        char = self.variable_registers[x] & 15
+                        self.index_register = 0x50 + (char * 5)
                     case 0x33:
                         # FX33: Binary-coded decimal conversion
                         num = self.variable_registers[x]
@@ -255,7 +251,8 @@ class CPU:
                print(f'Unknown instruction: {hex(instruction)}')
 
     def dump_display(self) -> None:
-        for col in range(len(self.display)):
-            for row in range(len(self.display[0])):
-                print(self.display[col][row], end='')
+        for y in range(len(self.display[0])):
+            for x in range(len(self.display)):
+                char = '*' if self.display[x][y] else ' '
+                print(char, end='')
             print()
