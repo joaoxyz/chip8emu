@@ -46,6 +46,9 @@ def run(cpu: cpu.CPU) -> int:
 
         draw(screen, cpu.display, color_palette)
 
+    if (cpu.debug):
+        cpu.dump_display()
+
     return 0
 
 if __name__ == "__main__":
