@@ -1,5 +1,4 @@
 import sys
-import time
 
 import numpy as np
 import numpy.typing as npt
@@ -9,7 +8,6 @@ from pygame.surfarray import blit_array
 import cpu
 
 type RGBColor = tuple[int, int, int]
-TIMER_UPDATE = 0.016
 
 def draw(screen: pygame.Surface, arr: npt.NDArray[np.uint8], palette: tuple[RGBColor, RGBColor]) -> None:
     colored_arr = np.zeros((*arr.shape, 3), dtype=np.uint8)
@@ -22,11 +20,10 @@ def draw(screen: pygame.Surface, arr: npt.NDArray[np.uint8], palette: tuple[RGBC
 def run(cpu: cpu.CPU) -> int:
     pygame.init()
     screen = pygame.display.set_mode((64, 32), pygame.SCALED)
+    clock = pygame.time.Clock()
     running = True
     color_palette = ((139,172,15), (15,56,15))
 
-    acc = 0.0
-    last_time = time.time()
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -43,20 +40,12 @@ def run(cpu: cpu.CPU) -> int:
                         cpu.variable_registers[cpu.wait_register] = cpu.keypad_layout[key]
                         cpu.wait = False
 
-        acc += time.time() - last_time
-        if acc > TIMER_UPDATE:
-            if cpu.delay_timer > 0:
-                cpu.delay_timer -= 1
-            if cpu.sound_timer > 0:
-                cpu.sound_timer -= 1
-            acc = 0.0
-        last_time = time.time()
-
         # Emulator logic
-        if not cpu.wait:
-            cpu.decode_and_execute(cpu.fetch())
+        cpu.step()
 
         draw(screen, cpu.display, color_palette)
+
+        clock.tick(60)
 
     if (cpu.debug):
         cpu.dump_display()

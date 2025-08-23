@@ -65,6 +65,7 @@ class CPU:
 
         self.wait = False
         self.wait_register: int = 0
+        self.instructions_per_cycle = 15
 
     def fetch(self) -> int:
         byte1 = self.memory[self.program_counter]
@@ -292,6 +293,16 @@ class CPU:
                         print(f'Unknown instruction: {hex(instruction)}')
             case _:
                print(f'Unknown instruction: {hex(instruction)}')
+
+    def step(self) -> None:
+        for _ in range(self.instructions_per_cycle):
+            if not self.wait:
+                self.decode_and_execute(self.fetch())
+
+        if self.delay_timer > 0:
+            self.delay_timer -= 1
+        if self.sound_timer > 0:
+            self.sound_timer -= 1
 
     def dump_display(self) -> None:
         for y in range(len(self.display[0])):
