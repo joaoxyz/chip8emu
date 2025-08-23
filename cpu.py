@@ -13,32 +13,32 @@ class CPU:
         self.program_counter: int = 0x200
         self.index_register: int = 0
         self.stack: list[int] = []
-        # TODO: Research how timers work??
         self.delay_timer = 0xFF
         self.sound_timer = 0xFF
         self.variable_registers: list[int] = [0] * 16
 
-        # Array of pygame keycode constants that map to the CHIP-8 keypad
-        # Ordered 0-F such that the corresponding keycode can be accessed
-        # with keypad_layout[key]
-        self.keypad_layout = [
-            pygame.K_x,
-            pygame.K_1,
-            pygame.K_2,
-            pygame.K_3,
-            pygame.K_q,
-            pygame.K_w,
-            pygame.K_e,
-            pygame.K_a,
-            pygame.K_s,
-            pygame.K_d,
-            pygame.K_z,
-            pygame.K_c,
-            pygame.K_4,
-            pygame.K_r,
-            pygame.K_f,
-            pygame.K_v,
-        ]
+        # Mapping of keyboard keycodes to CHIP-8 keys
+        self.keypad_layout = {
+            pygame.K_x: 0x0,
+            pygame.K_1: 0x1,
+            pygame.K_2: 0x2,
+            pygame.K_3: 0x3,
+            pygame.K_q: 0x4,
+            pygame.K_w: 0x5,
+            pygame.K_e: 0x6,
+            pygame.K_a: 0x7,
+            pygame.K_s: 0x8,
+            pygame.K_d: 0x9,
+            pygame.K_z: 0xA,
+            pygame.K_c: 0xB,
+            pygame.K_4: 0xC,
+            pygame.K_r: 0xD,
+            pygame.K_f: 0xE,
+            pygame.K_v: 0xF,
+        }
+
+
+        self.keypad_state = [False] * 16
 
         # Add font data to memory
         font_arr: list[int] = [
@@ -62,6 +62,9 @@ class CPU:
 
         for i in range(0x50, 0x50+len(font_arr)):
             self.memory[i] = font_arr[i-0x50]
+
+        self.wait = False
+        self.wait_register: int = 0
 
     def fetch(self) -> int:
         byte1 = self.memory[self.program_counter]
@@ -228,14 +231,12 @@ class CPU:
                     case 0x9E:
                         # EX9E: Skip if key pressed
                         key = self.variable_registers[x] & 0xF
-                        keyboard_state = pygame.key.get_pressed()
-                        if keyboard_state[self.keypad_layout[key]]:
+                        if self.keypad_state[key]:
                             self.program_counter += 2
                     case 0xA1:
                         # EXA1: Skip if key not pressed
                         key = self.variable_registers[x] & 0xF
-                        keyboard_state = pygame.key.get_pressed()
-                        if not keyboard_state[self.keypad_layout[key]]:
+                        if not self.keypad_state[key]:
                             self.program_counter += 2
                     case _:
                         print(f'Unknown instruction: {hex(instruction)}')
@@ -260,60 +261,8 @@ class CPU:
                             self.index_register &= 0xFFFF
                     case 0x0A:
                         # FX0A: Get key
-                        self.program_counter -= 2
-                        for event in pygame.event.get():
-                            if event.type == pygame.KEYDOWN:
-                                match event.key:
-                                    case pygame.K_1:
-                                        self.variable_registers[x] = 0x1
-                                        self.program_counter += 2
-                                    case pygame.K_2:
-                                        self.variable_registers[x] = 0x2
-                                        self.program_counter += 2
-                                    case pygame.K_3:
-                                        self.variable_registers[x] = 0x3
-                                        self.program_counter += 2
-                                    case pygame.K_4:
-                                        self.variable_registers[x] = 0xC
-                                        self.program_counter += 2
-                                    case pygame.K_q:
-                                        self.variable_registers[x] = 0x4
-                                        self.program_counter += 2
-                                    case pygame.K_w:
-                                        self.variable_registers[x] = 0x5
-                                        self.program_counter += 2
-                                    case pygame.K_e:
-                                        self.variable_registers[x] = 0x6
-                                        self.program_counter += 2
-                                    case pygame.K_r:
-                                        self.variable_registers[x] = 0xD
-                                        self.program_counter += 2
-                                    case pygame.K_a:
-                                        self.variable_registers[x] = 0x7
-                                        self.program_counter += 2
-                                    case pygame.K_s:
-                                        self.variable_registers[x] = 0x8
-                                        self.program_counter += 2
-                                    case pygame.K_d:
-                                        self.variable_registers[x] = 0x9
-                                        self.program_counter += 2
-                                    case pygame.K_f:
-                                        self.variable_registers[x] = 0xE
-                                        self.program_counter += 2
-                                    case pygame.K_z:
-                                        self.variable_registers[x] = 0xA
-                                        self.program_counter += 2
-                                    case pygame.K_x:
-                                        self.variable_registers[x] = 0x0
-                                        self.program_counter += 2
-                                    case pygame.K_c:
-                                        self.variable_registers[x] = 0xB
-                                        self.program_counter += 2
-                                    case pygame.K_v:
-                                        self.variable_registers[x] = 0xF
-                                        self.program_counter += 2
-                                    case _:
-                                        pass
+                        self.wait = True
+                        self.wait_register = x
                     case 0x29:
                         # FX29: Set index to font data for character in VX
                         char = self.variable_registers[x] & 15

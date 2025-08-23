@@ -31,6 +31,17 @@ def run(cpu: cpu.CPU) -> int:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                key = event.key
+                if key in cpu.keypad_layout:
+                    cpu.keypad_state[cpu.keypad_layout[key]] = True
+            if event.type == pygame.KEYUP:
+                key = event.key
+                if key in cpu.keypad_layout:
+                    cpu.keypad_state[cpu.keypad_layout[key]] = False
+                    if cpu.wait:
+                        cpu.variable_registers[cpu.wait_register] = cpu.keypad_layout[key]
+                        cpu.wait = False
 
         acc += time.time() - last_time
         if acc > TIMER_UPDATE:
@@ -42,7 +53,8 @@ def run(cpu: cpu.CPU) -> int:
         last_time = time.time()
 
         # Emulator logic
-        cpu.decode_and_execute(cpu.fetch())
+        if not cpu.wait:
+            cpu.decode_and_execute(cpu.fetch())
 
         draw(screen, cpu.display, color_palette)
 
