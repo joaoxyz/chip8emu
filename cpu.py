@@ -237,6 +237,8 @@ class CPU:
                         keyboard_state = pygame.key.get_pressed()
                         if not keyboard_state[self.keypad_layout[key]]:
                             self.program_counter += 2
+                    case _:
+                        print(f'Unknown instruction: {hex(instruction)}')
             case 0xF:
                 match nn:
                     case 0x07:
@@ -310,6 +312,8 @@ class CPU:
                                     case pygame.K_v:
                                         self.variable_registers[x] = 0xF
                                         self.program_counter += 2
+                                    case _:
+                                        pass
                     case 0x29:
                         # FX29: Set index to font data for character in VX
                         char = self.variable_registers[x] & 15
