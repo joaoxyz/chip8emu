@@ -136,13 +136,19 @@ class CPU:
                         self.variable_registers[x] = self.variable_registers[y]
                     case 0x1:
                         # 8XY1: Binary OR
+                        # COSMAC VIP CHIP-8 quirk
                         self.variable_registers[x] |= self.variable_registers[y]
+                        self.variable_registers[0xF] = 0
                     case 0x2:
                         # 8XY2: Binary AND
+                        # COSMAC VIP CHIP-8 quirk
                         self.variable_registers[x] &= self.variable_registers[y]
+                        self.variable_registers[0xF] = 0
                     case 0x3:
                         # 8XY3: Bitwise XOR
                         self.variable_registers[x] ^= self.variable_registers[y]
+                        # COSMAC VIP CHIP-8 quirk
+                        self.variable_registers[0xF] = 0
                     case 0x4:
                         # 8XY4: Add
                         self.variable_registers[x] += self.variable_registers[y]
@@ -174,14 +180,14 @@ class CPU:
                             self.variable_registers[0xF] = 1
                     case 0x6:
                         # 8XY6: Shift right
-                        # TODO: Ambiguous instruction, behavior should be configurable
+                        self.variable_registers[x] = self.variable_registers[y]
                         vx = self.variable_registers[x]
                         self.variable_registers[x] >>= 1
                         # Set VF to bit shifted out
                         self.variable_registers[0xF] = vx & 1
                     case 0xE:
                         # 8XY6: Shift left
-                        # TODO: Ambiguous instruction, behavior should be configurable
+                        self.variable_registers[x] = self.variable_registers[y]
                         vx = self.variable_registers[x]
                         self.variable_registers[x] <<= 1
                         # Handle overflow
@@ -199,7 +205,6 @@ class CPU:
                 self.index_register = nnn
             case 0xB:
                 # BNNN: Jump with offset
-                # TODO: Ambiguous instruction, could be made configurable
                 self.program_counter = nnn + self.variable_registers[0]
             case 0xC:
                 # CXNN: Random number generation
@@ -208,25 +213,24 @@ class CPU:
                 # DXYN: Draw to display
                 x_start_pos = self.variable_registers[x] & 63
                 y_start_pos = self.variable_registers[y] & 31
-                self.variable_registers[0xF] = 0
                 sprite_height = n
                 sprite_width = 8
 
-                for y_pos in range(sprite_height):
-                    sprite = self.memory[self.index_register+y_pos]
-                    y_screen = (y_start_pos + y_pos)# & 31
+                self.variable_registers[0xF] = 0
+                for y_offset in range(sprite_height):
+                    sprite = self.memory[self.index_register+y_offset]
+                    y_screen = y_start_pos + y_offset
                     if y_screen >= len(self.display[0]):
                         break
-                    for x_pos in range(sprite_width):
-                        sprite_pixel = (sprite >> (7 - x_pos)) & 1
-                        if sprite_pixel == 1:
-                            x_screen = (x_start_pos + x_pos) & 63
-                            if x_screen >= len(self.display):
-                                break
-                            # Update register VF on pixel turnoff
-                            if self.display[x_screen][y_screen] == 1:
-                                self.variable_registers[0xF] = 1
-                            self.display[x_screen][y_screen] ^= 1
+                    for x_offset in range(sprite_width):
+                        sprite_pixel = (sprite >> (7 - x_offset)) & 1
+                        x_screen = x_start_pos + x_offset
+                        if x_screen >= len(self.display):
+                            break
+                        # Update register VF on pixel turnoff
+                        if sprite_pixel == 1 and self.display[x_screen][y_screen] == 1:
+                            self.variable_registers[0xF] = 1
+                        self.display[x_screen][y_screen] ^= sprite_pixel
             case 0xE:
                 match nn:
                     case 0x9E:
@@ -279,16 +283,18 @@ class CPU:
                             i -= 1
                     case 0x55:
                         # FX55: Store
-                        # Ambiguous instruction!
-                        upper_bound = x
-                        for i in range(upper_bound+1):
-                            self.memory[self.index_register+i] = self.variable_registers[i]
+                        base_addr = self.index_register
+                        for i in range(x+1):
+                            self.memory[base_addr+i] = self.variable_registers[i]
+                            # COSMAC VIP CHIP-8 quirk
+                            self.index_register += 1
                     case 0x65:
                         # FX65: Load
-                        # Ambiguous instruction!
-                        upper_bound = x
-                        for i in range(upper_bound+1):
-                            self.variable_registers[i] = self.memory[self.index_register+i]
+                        base_addr = self.index_register
+                        for i in range(x+1):
+                            self.variable_registers[i] = self.memory[base_addr+i]
+                            # COSMAC VIP CHIP-8 quirk
+                            self.index_register += 1
                     case _:
                         print(f'Unknown instruction: {hex(instruction)}')
             case _:
