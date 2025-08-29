@@ -1,7 +1,6 @@
 from random import randint
 
 import numpy as np
-import pygame
 
 class CPU:
     def __init__(self, debug: bool = False) -> None:
@@ -16,29 +15,11 @@ class CPU:
         self.delay_timer = 0xFF
         self.sound_timer = 0xFF
         self.variable_registers: list[int] = [0] * 16
-
-        # Mapping of keyboard keycodes to CHIP-8 keys
-        self.keypad_layout = {
-            pygame.K_x: 0x0,
-            pygame.K_1: 0x1,
-            pygame.K_2: 0x2,
-            pygame.K_3: 0x3,
-            pygame.K_q: 0x4,
-            pygame.K_w: 0x5,
-            pygame.K_e: 0x6,
-            pygame.K_a: 0x7,
-            pygame.K_s: 0x8,
-            pygame.K_d: 0x9,
-            pygame.K_z: 0xA,
-            pygame.K_c: 0xB,
-            pygame.K_4: 0xC,
-            pygame.K_r: 0xD,
-            pygame.K_f: 0xE,
-            pygame.K_v: 0xF,
-        }
-
-
         self.keypad_state = [False] * 16
+        # Check if waiting for input after FX0A instruction
+        self.wait = False
+        self.wait_register: int = 0
+        self.instructions_per_cycle = 15
 
         # Add font data to memory
         font_arr: list[int] = [
@@ -62,10 +43,6 @@ class CPU:
 
         for i in range(0x50, 0x50+len(font_arr)):
             self.memory[i] = font_arr[i-0x50]
-
-        self.wait = False
-        self.wait_register: int = 0
-        self.instructions_per_cycle = 15
 
     def fetch(self) -> int:
         byte1 = self.memory[self.program_counter]

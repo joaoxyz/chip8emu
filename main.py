@@ -9,6 +9,26 @@ import cpu
 
 type RGBColor = tuple[int, int, int]
 
+# Mapping of keyboard keycodes to CHIP-8 keys
+keypad_layout = {
+    pygame.K_x: 0x0,
+    pygame.K_1: 0x1,
+    pygame.K_2: 0x2,
+    pygame.K_3: 0x3,
+    pygame.K_q: 0x4,
+    pygame.K_w: 0x5,
+    pygame.K_e: 0x6,
+    pygame.K_a: 0x7,
+    pygame.K_s: 0x8,
+    pygame.K_d: 0x9,
+    pygame.K_z: 0xA,
+    pygame.K_c: 0xB,
+    pygame.K_4: 0xC,
+    pygame.K_r: 0xD,
+    pygame.K_f: 0xE,
+    pygame.K_v: 0xF,
+}
+
 def draw(screen: pygame.Surface, arr: npt.NDArray[np.uint8], palette: tuple[RGBColor, RGBColor]) -> None:
     colored_arr = np.zeros((*arr.shape, 3), dtype=np.uint8)
     colored_arr[arr == 1] = palette[0]
@@ -30,14 +50,14 @@ def run(cpu: cpu.CPU) -> int:
                 running = False
             if event.type == pygame.KEYDOWN:
                 key = event.key
-                if key in cpu.keypad_layout:
-                    cpu.keypad_state[cpu.keypad_layout[key]] = True
+                if key in keypad_layout:
+                    cpu.keypad_state[keypad_layout[key]] = True
             if event.type == pygame.KEYUP:
                 key = event.key
-                if key in cpu.keypad_layout:
-                    cpu.keypad_state[cpu.keypad_layout[key]] = False
+                if key in keypad_layout:
+                    cpu.keypad_state[keypad_layout[key]] = False
                     if cpu.wait:
-                        cpu.variable_registers[cpu.wait_register] = cpu.keypad_layout[key]
+                        cpu.variable_registers[cpu.wait_register] = keypad_layout[key]
                         cpu.wait = False
 
         # Emulator logic
@@ -57,10 +77,10 @@ if __name__ == "__main__":
         print('Usage: python main.py filename')
         sys.exit(1)
 
-    chip8cpu = cpu.CPU()
+    emulator = cpu.CPU()
 
     with open(sys.argv[1], 'rb') as rom:
         rom_data = bytearray(rom.read())
-        chip8cpu.memory[chip8cpu.program_counter:len(rom_data)] = rom_data
+        emulator.memory[emulator.program_counter:len(rom_data)] = rom_data
 
-    sys.exit(run(chip8cpu))
+    sys.exit(run(emulator))
