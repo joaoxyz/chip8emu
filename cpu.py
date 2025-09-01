@@ -12,6 +12,7 @@ class CPU:
         self.program_counter: int = 0x200
         self.index_register: int = 0
         self.stack: list[int] = []
+        self.stack_size = 16
         self.delay_timer = 0xFF
         self.sound_timer = 0xFF
         self.variable_registers: list[int] = [0] * 16
@@ -19,7 +20,7 @@ class CPU:
         # Check if waiting for input after FX0A instruction
         self.wait = False
         self.wait_register: int = 0
-        self.instructions_per_cycle = 15
+        self.instructions_per_cycle = 100
 
         # Add font data to memory
         font_arr: list[int] = [
@@ -83,8 +84,11 @@ class CPU:
                 self.program_counter = nnn
             case 0x2:
                 # 2NNN: Call subroutine
-                self.stack.append(self.program_counter)
-                self.program_counter = nnn
+                if len(self.stack) <= self.stack_size:
+                    self.stack.append(self.program_counter)
+                    self.program_counter = nnn
+                else:
+                    raise
             case 0x3:
                 # 3XNN: Skip if VX == NN
                 if self.variable_registers[x] == nn:
@@ -175,7 +179,7 @@ class CPU:
                         print(f'Unknown instruction: {hex(instruction)}')
             case 0x9:
                 # 9XY0: Skip if VX != VY
-                if self.variable_registers[x] != self.variable_registers[y] :
+                if self.variable_registers[x] != self.variable_registers[y]:
                     self.program_counter += 2
             case 0xA:
                 # ANNN: Set index register
@@ -293,3 +297,7 @@ class CPU:
                 char = '*' if self.display[x][y] else ' '
                 print(char, end='')
             print()
+
+class StackOverflowError(Exception):
+    def __init__(self, msg: str="Stack size limit exceeded (16)."):
+        super().__init__(msg)
