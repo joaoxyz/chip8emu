@@ -9,6 +9,8 @@ import cpu
 
 type RGBColor = tuple[int, int, int]
 
+screen_size = (1024, 512)
+
 # Mapping of keyboard keycodes to CHIP-8 keys
 keypad_layout = {
     pygame.K_x: 0x0,
@@ -29,21 +31,26 @@ keypad_layout = {
     pygame.K_v: 0xF,
 }
 
-def draw(screen: pygame.Surface, arr: npt.NDArray[np.uint8], palette: tuple[RGBColor, RGBColor]) -> None:
+def draw(screen: pygame.Surface, original_display: pygame.Surface, arr: npt.NDArray[np.uint8], palette: tuple[RGBColor, RGBColor]) -> None:
     colored_arr = np.zeros((*arr.shape, 3), dtype=np.uint8)
     colored_arr[arr == 1] = palette[0]
     colored_arr[arr != 1] = palette[1]
 
-    blit_array(screen, colored_arr)
+    blit_array(original_display, colored_arr)
+    pygame.transform.scale(original_display, screen_size, screen)
     pygame.display.flip()
 
 def run(cpu: cpu.CPU) -> int:
     pygame.init()
-    screen = pygame.display.set_mode((64, 32), pygame.SCALED)
+    pygame.mixer.init()
+
+    # beep = pygame.mixer.Sound("beep.wav")
+    screen = pygame.display.set_mode(screen_size)
+    original_display = pygame.Surface((64, 32))
     clock = pygame.time.Clock()
-    running = True
     color_palette = ((139,172,15), (15,56,15))
 
+    running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -63,7 +70,11 @@ def run(cpu: cpu.CPU) -> int:
         # Emulator logic
         cpu.step()
 
-        draw(screen, cpu.display, color_palette)
+        draw(screen, original_display, cpu.display, color_palette)
+
+        if cpu.sound_timer > 0:
+            # beep.play()
+            pass
 
         clock.tick(60)
 
@@ -81,6 +92,6 @@ if __name__ == "__main__":
 
     with open(sys.argv[1], 'rb') as rom:
         rom_data = bytearray(rom.read())
-        emulator.memory[emulator.program_counter:len(rom_data)] = rom_data
+    emulator.memory[emulator.program_counter:len(rom_data)] = rom_data
 
     sys.exit(run(emulator))

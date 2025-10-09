@@ -20,7 +20,7 @@ class CPU:
         # Check if waiting for input after FX0A instruction
         self.wait = False
         self.wait_register: int = 0
-        self.instructions_per_cycle = 100
+        self.instructions_per_cycle = 20
 
         # Add font data to memory
         font_arr: list[int] = [
