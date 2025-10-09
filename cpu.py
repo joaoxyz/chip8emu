@@ -18,9 +18,11 @@ class CPU:
         self.variable_registers: list[int] = [0] * 16
         self.keypad_state = [False] * 16
         # Check if waiting for input after FX0A instruction
-        self.wait = False
+        self.wait_input = False
+        # Interrupt CPU until next frame if the draw instruction is executed
+        self.draw_interrupt = False
         self.wait_register: int = 0
-        self.instructions_per_cycle = 20
+        self.instructions_per_cycle = 12
 
         # Add font data to memory
         font_arr: list[int] = [
@@ -192,6 +194,8 @@ class CPU:
                 self.variable_registers[x] = randint(0, 255) & nn
             case 0xD:
                 # DXYN: Draw to display
+                self.draw_interrupt = True
+
                 x_start_pos = self.variable_registers[x] & 63
                 y_start_pos = self.variable_registers[y] & 31
                 sprite_height = n
@@ -247,7 +251,7 @@ class CPU:
                             self.index_register &= 0xFFFF
                     case 0x0A:
                         # FX0A: Get key
-                        self.wait = True
+                        self.wait_input = True
                         self.wait_register = x
                     case 0x29:
                         # FX29: Set index to font data for character in VX
@@ -283,7 +287,7 @@ class CPU:
 
     def step(self) -> None:
         for _ in range(self.instructions_per_cycle):
-            if not self.wait:
+            if not self.wait_input and not self.draw_interrupt:
                 self.decode_and_execute(self.fetch())
 
         if self.delay_timer > 0:

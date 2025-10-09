@@ -63,14 +63,15 @@ def run(cpu: cpu.CPU) -> int:
                 key = event.key
                 if key in keypad_layout:
                     cpu.keypad_state[keypad_layout[key]] = False
-                    if cpu.wait:
+                    if cpu.wait_input:
                         cpu.variable_registers[cpu.wait_register] = keypad_layout[key]
-                        cpu.wait = False
+                        cpu.wait_input = False
 
         # Emulator logic
         cpu.step()
 
         draw(screen, original_display, cpu.display, color_palette)
+        cpu.draw_interrupt = False
 
         if cpu.sound_timer > 0:
             # beep.play()
