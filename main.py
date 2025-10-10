@@ -9,7 +9,9 @@ import cpu
 
 type RGBColor = tuple[int, int, int]
 
-screen_size = (1024, 512)
+display_size = (64, 32)
+scale_factor = 12
+screen_size = tuple(x * scale_factor for x in display_size)
 
 # Mapping of keyboard keycodes to CHIP-8 keys
 keypad_layout = {
@@ -46,7 +48,7 @@ def run(cpu: cpu.CPU) -> int:
 
     # beep = pygame.mixer.Sound("beep.wav")
     screen = pygame.display.set_mode(screen_size)
-    original_display = pygame.Surface((64, 32))
+    original_display = pygame.Surface(display_size)
     clock = pygame.time.Clock()
     color_palette = ((139,172,15), (15,56,15))
 
