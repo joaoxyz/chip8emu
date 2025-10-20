@@ -1,6 +1,9 @@
 from random import randint
+import sys
 
 import numpy as np
+
+STACK_SIZE = 16
 
 class CPU:
     def __init__(self, debug: bool = False) -> None:
@@ -12,7 +15,6 @@ class CPU:
         self.program_counter: int = 0x200
         self.index_register: int = 0
         self.stack: list[int] = []
-        self.stack_size = 16
         self.delay_timer = 0xFF
         self.sound_timer = 0xFF
         self.variable_registers: list[int] = [0] * 16
@@ -86,11 +88,12 @@ class CPU:
                 self.program_counter = nnn
             case 0x2:
                 # 2NNN: Call subroutine
-                if len(self.stack) <= self.stack_size:
+                if len(self.stack) <= STACK_SIZE:
                     self.stack.append(self.program_counter)
                     self.program_counter = nnn
                 else:
-                    raise
+                    print(f"Stack size limit exceeded ({STACK_SIZE}).")
+                    sys.exit(1)
             case 0x3:
                 # 3XNN: Skip if VX == NN
                 if self.variable_registers[x] == nn:
@@ -301,7 +304,3 @@ class CPU:
                 char = '*' if self.display[x][y] else ' '
                 print(char, end='')
             print()
-
-class StackOverflowError(Exception):
-    def __init__(self, msg: str="Stack size limit exceeded (16)."):
-        super().__init__(msg)
